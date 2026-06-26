@@ -55,34 +55,30 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('gananciaTotal', 'totalPedidos'));
     }
 
-    # 🚀 NUEVO MÉTODO: Construcción y recorrido del Árbol Binario en memoria
     public function verArbol()
     {
         if (!session('admin')) {
             return redirect('/admin/login');
         }
 
-        // 1. Traemos los pedidos en bruto de MongoDB
-        $pedidos = Pedido::all();
+        // Simplemente renderiza la vista contenedora del Canvas. El frontend se encargará del fetch.
+        return view('admin.arbol');
+    }
 
-        // 2. Instanciamos nuestra estructura de datos pura
-        $arbol = new ArbolBinarioPedidos();
+    # 🌐 ENDPOINT API: Retorna JSON directo desde MongoDB para el render dinámico del árbol
+    public function apiPedidosArbol()
+    {
+        // Extrae los últimos 15 pedidos reales para mantener el balanceo visual limpio
+        $pedidos = Pedido::orderBy('fecha', 'desc')
+            ->take(15)
+            ->get(['codigo_pedido', 'total_pagado', 'cliente']);
 
-        // 3. Alimentamos el árbol insertando los pedidos uno por uno
-        foreach ($pedidos as $pedido) {
-            $arbol->insertar($pedido);
-        }
-
-        // 4. Ejecutamos el algoritmo de recorrido In-Order (Izquierda -> Raíz -> Derecha)
-        // Esto ordenará automáticamente los pedidos de menor a mayor precio a nivel algorítmico
-        $pedidosOrdenados = $arbol->obtenerInOrder();
-
-        return view('admin.arbol', compact('pedidosOrdenados'));
+        return response()->json($pedidos, 200);
     }
 }
 
 // =========================================================================
-// 🧠 ESTRUCTURAS DE DATOS PURAS (Para sustentar tu nota de Algoritmos)
+// 🧠 ESTRUCTURAS DE DATOS PURAS (Sustento algorítmico en memoria)
 // =========================================================================
 
 class NodoPedido {
@@ -98,7 +94,6 @@ class NodoPedido {
 class ArbolBinarioPedidos {
     public $raiz = null;
 
-    // Algoritmo de inserción en un Árbol Binario de Búsqueda (BST)
     public function insertar($pedido) {
         $nuevoNodo = new NodoPedido($pedido);
         if ($this->raiz === null) {
@@ -109,16 +104,13 @@ class ArbolBinarioPedidos {
     }
 
     private function insertarNodo($nodoActual, $nuevoNodo) {
-        // Criterio de ordenación: Monto Total Pagado
         if ($nuevoNodo->pedido->total_pagado < $nodoActual->pedido->total_pagado) {
-            // Si es menor, se va a la sub-rama izquierda
             if ($nodoActual->izquierdo === null) {
                 $nodoActual->izquierdo = $nuevoNodo;
             } else {
                 $this->insertarNodo($nodoActual->izquierdo, $nuevoNodo);
             }
         } else {
-            // Si es mayor o igual, se va a la sub-rama derecha
             if ($nodoActual->derecho === null) {
                 $nodoActual->derecho = $nuevoNodo;
             } else {
@@ -127,7 +119,6 @@ class ArbolBinarioPedidos {
         }
     }
 
-    // Algoritmo de recorrido In-Order para recuperar los elementos ordenados ascendentemente
     public function obtenerInOrder() {
         $resultado = [];
         $this->recorridoInOrder($this->raiz, $resultado);
@@ -136,9 +127,9 @@ class ArbolBinarioPedidos {
 
     private function recorridoInOrder($nodo, &$resultado) {
         if ($nodo !== null) {
-            $this->recorridoInOrder($nodo->izquierdo, $resultado); // Izquierda
-            $resultado[] = $nodo;                                  // Raíz (Guardamos el nodo completo)
-            $this->recorridoInOrder($nodo->derecho, $resultado);   // Derecha
+            $this->recorridoInOrder($nodo->izquierdo, $resultado);
+            $resultado[] = $nodo;
+            $this->recorridoInOrder($nodo->derecho, $resultado);
         }
     }
 }

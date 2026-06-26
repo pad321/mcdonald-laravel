@@ -219,10 +219,7 @@ document.getElementById('formInicio').addEventListener('submit', function(e){
         <button type="submit" class="boton">Continuar →</button>
         <button type="button" class="boton boton-admin" id="btnAdmin">Ingresar como administrador</button>
 
-        <div class="dots">
-            <div class="dot activo"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+            
         </div>
     </form>
 </div>

@@ -6,20 +6,17 @@ use MongoDB\Laravel\Eloquent\Model;
 
 class Pedido extends Model
 {
-
     protected $connection = 'mongodb';
-
     protected $collection = 'pedidos';
 
+    // Aseguramos que Laravel permita guardar los punteros del árbol en el JSON
     protected $fillable = [
-
         'cliente',
         'codigo_pedido',
         'pedido',
-        'metodo_pago',
         'total_pagado',
-        'fecha'
-
+        'estado',
+        'izquierdo_id', 
+        'derecho_id'
     ];
-
 }

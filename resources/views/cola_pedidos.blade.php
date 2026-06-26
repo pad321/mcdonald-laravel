@@ -1,97 +1,258 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cola de Pedidos FIFO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoreo de Pedidos - Cola FIFO API</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        min-height: 100vh;
+        background: #0d0909;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #f5f5f5;
+        padding: 20px;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+    }
+
+    header {
+        background: #140e0e;
+        border-radius: 16px;
+        padding: 24px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .header-info h1 { font-size: clamp(22px, 4vw, 26px); color: #ffc107; font-weight: 700; }
+    .header-info p { color: #8c8c8c; font-size: 13px; margin-top: 4px; }
+    .btn-volver {
+        background: #ffc107; color: #140e0e; padding: 12px 20px; text-decoration: none;
+        border-radius: 8px; font-weight: 600; font-size: 14px; transition: background 0.2s;
+    }
+    .btn-volver:hover { background: #ffb300; }
+
+    .teoria-box {
+        background: #140e0e; border-radius: 16px; padding: 22px 26px;
+        border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 24px;
+        line-height: 1.6; font-size: 14px; color: #dfdfdf;
+    }
+    .teoria-box strong { color: #ffc107; }
+    .teoria-box .destaque-fifo { color: #00bcd4; font-weight: 600; }
+
+    /* 📦 CONTENEDOR ELÁSTICO RESPONSIVO */
+    #cola-pedidos-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: flex-start;
+    }
+
+    .pedido-card {
+        flex: 1 1 calc(33.333% - 14px);
+        min-width: 300px;
+        background: #140e0e; border-radius: 16px; padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex; gap: 16px; position: relative;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @media (max-width: 900px) {
+        .pedido-card {
+            flex: 1 1 calc(50% - 10px);
+        }
+    }
+    @media (max-width: 650px) {
+        .pedido-card {
+            flex: 1 1 100%;
+        }
+        header {
+            justify-content: center;
+            text-align: center;
+        }
+        .btn-volver {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    .pedido-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; 
+        background: #ffc107; border-radius: 16px 0 0 16px;
+    }
+
+    .turno-badge {
+        width: 60px; height: 60px; background: #231818; border: 2px solid #ffc107;
+        border-radius: 50%; display: flex; flex-direction: column; 
+        justify-content: center; align-items: center; flex-shrink: 0;
+    }
+    .turno-badge .label { font-size: 9px; color: #8c8c8c; text-transform: uppercase; font-weight: 600; }
+    .turno-badge .numero { font-size: 20px; color: #ffc107; font-weight: 700; line-height: 1.1; }
+
+    .pedido-detalles { flex: 1; min-width: 0; }
+    .pedido-detalles h3 { font-size: 18px; color: #ffc107; font-weight: 700; margin-bottom: 10px; }
+    
+    .meta-grid { 
+        display: flex; 
+        flex-direction: column;
+        gap: 4px; 
+        font-size: 13px; 
+        color: #8c8c8c; 
+        margin-bottom: 16px; 
+    }
+    .meta-grid span strong { color: #dfdfdf; font-weight: 600; }
+
+    .productos-box {
+        background: #090606; border-radius: 10px; border: 1px solid #2d2020; padding: 14px; margin-bottom: 16px;
+    }
+    .productos-box p { font-size: 11px; color: #8c8c8c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
+    .productos-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .productos-list li { 
+        font-size: 13px; 
+        color: #dfdfdf; 
+        display: flex; 
+        align-items: center; 
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .productos-list li::before { content: '•'; color: #ffc107; font-size: 14px; }
+
+    .pedido-footer {
+        display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid #2d2020; padding-top: 12px;
+    }
+    .total-box { text-align: right; }
+    .total-box p { font-size: 10px; color: #8c8c8c; text-transform: uppercase; font-weight: 600; }
+    .total-box h4 { font-size: 20px; color: #00bcd4; font-weight: 700; margin-top: 2px; }
+
+    .loading-status {
+        width: 100%; text-align: center; color: #8c8c8c; font-size: 14px; padding: 40px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 </head>
-<body class="bg-[#120600] text-white min-h-screen font-sans p-6 md:p-10">
+<body>
 
-    <div class="max-w-4xl mx-auto">
+<div class="container">
+    <header>
+        <div class="header-info">
+            <h1>Cola de Pedidos FIFO</h1>
+        </div>
+        <a href="/admin/dashboard" class="btn-volver">Volver al panel</a>
+    </header>
+
+    <div id="cola-pedidos-container">
+        <div class="loading-status">Conectando con MongoDB API...</div>
+    </div>
+</div>
+
+<script>
+// 🚀 Consulta asíncrona apuntando a la API real configurada en web.php
+async function consultarColaAPI() {
+    const contenedor = document.getElementById('cola-pedidos-container');
+    if (!contenedor) return;
+
+    try {
+        const respuesta = await fetch('/api/v1/admin/cola-pedidos');
+        if (!respuesta.ok) throw new Error("Error en la respuesta del servidor");
         
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-                <h1 class="text-3xl md:text-4xl font-black text-[#FFC300] tracking-tight">Cola de Pedidos FIFO ⏳</h1>
-                <p class="text-gray-400 text-sm mt-1">Monitoreo de estructura de datos en tiempo real</p>
-            </div>
-            <a href="/admin/dashboard" class="bg-[#FFC300] hover:bg-[#e6b000] text-[#1a0a00] font-black px-6 py-3 rounded-xl transition-all shadow-lg text-sm flex items-center gap-2 transform hover:scale-105">
-                Volver al panel 📊
-            </a>
-        </div>
+        const pedidos = await respuesta.json();
+        
+        if (!pedidos || pedidos.length === 0) {
+            contenedor.innerHTML = `<div class="loading-status" style="color: #ffc107;">No hay órdenes pendientes en la cola operativa.</div>`;
+            return;
+        }
 
-        <div class="bg-[#2a1200] border-l-4 border-[#FFC300] rounded-2xl p-5 mb-8 shadow-md">
-            <p class="text-gray-300 text-sm leading-relaxed">
-                Esta pantalla representa una estructura de datos lineal de tipo <b class="text-[#FFC300]">Cola FIFO (First In, First Out)</b>. 
-                El principio fundamental es que el <span class="text-white font-semibold">primer pedido que ingresa</span> a la base de datos es estrictamente el <span class="text-white font-semibold">primero en ser atendido</span>, manteniendo un orden cronológico perfecto.
-            </p>
-        </div>
+        let htmlContenido = '';
 
-        @if($pedidos->count() == 0)
-            <div class="bg-[#2a1200] p-10 rounded-2xl text-center border border-dashed border-gray-700">
-                <p class="text-gray-400 font-medium">✨ No hay pedidos pendientes en la cola de producción.</p>
-            </div>
-        @else
-            <div class="flex flex-col gap-4">
+        pedidos.forEach((pedido, index) => {
+            const metodoPago = pedido.metodo_pago ? pedido.metodo_pago : 'Yape';
+            const fechaRegistro = pedido.fecha ? pedido.fecha : 'No especificada';
+            
+            let itemsHTML = '';
+            
+            // Control intermedio NoSQL: Verifica si viene serializado como String u objeto directo
+            let productosArray = pedido.pedido;
+            if (typeof pedido.pedido === 'string') {
+                try { productosArray = JSON.parse(pedido.pedido); } catch(e) { productosArray = []; }
+            }
 
-                @foreach($pedidos as $index => $pedido)
-                    
-                    <div class="bg-[#2a1200] rounded-2xl p-6 border-l-8 border-[#FFC300] shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition-all hover:bg-[#361802]">
-                        
-                        <div class="flex items-center gap-5">
-                            <div class="w-14 h-14 rounded-full bg-[#FFC300] text-[#1a0a00] flex flex-col items-center justify-center shadow-md">
-                                <span class="text-[10px] font-bold uppercase tracking-wider leading-none">Turno</span>
-                                <span class="text-xl font-black mt-0.5">{{ $index + 1 }}</span>
-                            </div>
-                            
-                            <div>
-                                <h2 class="text-xl font-black text-[#FFC300]">Pedido {{ $pedido->codigo_pedido }}</h2>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-2 text-sm text-gray-300">
-                                    <p><b class="text-gray-400">Cliente:</b> {{ $pedido->cliente }}</p>
-                                    <p><b class="text-gray-400">Pago:</b> {{ $pedido->metodo_pago }}</p>
-                                    <p class="sm:col-span-2"><b class="text-gray-400">Fecha:</b> {{ $pedido->fecha }}</p>
-                                </div>
-                            </div>
-                        </div>
+            if (Array.isArray(productosArray)) {
+                productosArray.forEach(item => {
+                    const nombreProd = item.nombre ? item.nombre : 'Producto';
+                    itemsHTML += `<li>${nombreProd}</li>`;
+                });
+            } else if (Array.isArray(pedido.productos)) {
+                pedido.productos.forEach(prod => {
+                    itemsHTML += `<li>${prod}</li>`;
+                });
+            } else {
+                itemsHTML += `<li>Combo Seleccionado</li>`;
+            }
 
-                        <div class="bg-[#1c0c01] rounded-xl p-4 w-full md:w-64 border border-gray-800 self-stretch flex flex-col justify-center">
-                            <span class="text-[11px] uppercase font-bold text-gray-500 tracking-wider block mb-1">Productos</span>
-                            <div class="text-xs text-gray-300 space-y-1 max-h-24 overflow-y-auto">
-                                @if(isset($pedido->pedido))
-                                    @foreach($pedido->pedido as $producto)
-                                        <div class="flex items-start gap-1">
-                                            <span class="text-[#FFC300]">•</span>
-                                            <span>{{ $producto['nombre'] ?? $producto->nombre ?? 'Producto' }}</span>
-                                        </div>
-                                    @endforeach
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="text-right w-full md:w-auto self-end md:self-center">
-                            <span class="text-[11px] uppercase font-bold text-gray-500 tracking-wider block md:hidden mb-1">Total Pagado</span>
-                            <p class="text-2xl font-black text-[#FFC300] tracking-tight">
-                                S/. {{ number_format($pedido->total_pagado, 2) }}
-                            </p>
-                        </div>
-
+            htmlContenido += `
+                <div class="pedido-card">
+                    <div class="turno-badge">
+                        <span class="label">Turno</span>
+                        <span class="numero">${index + 1}</span>
                     </div>
 
-                    @if(!$loop->last)
-                        <div class="flex justify-center my-1">
-                            <div class="bg-[#2a1200] text-[#FFC300] font-black px-4 py-1.5 rounded-full text-sm shadow-inner flex items-center gap-1 animate-bounce">
-                                <span>↓</span>
-                                <span class="text-[10px] tracking-widest uppercase font-bold text-gray-400">Siguiente Nodo</span>
+                    <div class="pedido-detalles">
+                        <h3>Pedido ${pedido.codigo_pedido || 'N/A'}</h3>
+                        
+                        <div class="meta-grid">
+                            <span>Cliente: <strong>${pedido.cliente || 'Anónimo'}</strong></span>
+                            <span>Pago: <strong>${metodoPago}</strong></span>
+                            <span>Fecha: <strong>${fechaRegistro}</strong></span>
+                        </div>
+
+                        <div class="productos-box">
+                            <p>Productos</p>
+                            <ul class="productos-list">
+                                ${itemsHTML}
+                            </ul>
+                        </div>
+
+                        <div class="pedido-footer">
+                            <div class="total-box">
+                                <p>Total Pagado</p>
+                                <h4>S/. ${parseFloat(pedido.total_pagado).toFixed(2)}</h4>
                             </div>
                         </div>
-                    @endif
+                    </div>
+                </div>
+            `;
+        });
 
-                @endforeach
+        contenedor.innerHTML = htmlContenido;
 
-            </div>
-        @endif
+    } catch (error) {
+        console.error("Fallo el rastreo asíncrono de la cola:", error);
+        contenedor.innerHTML = `<div class="loading-status" style="color: #ff5252;">Error al sincronizar con el backend de Laravel. Reintentando...</div>`;
+    }
+}
 
-    </div>
+document.addEventListener('DOMContentLoaded', () => {
+    consultarColaAPI();
+    setInterval(consultarColaAPI, 5000);
+});
+</script>
 
 </body>
 </html>

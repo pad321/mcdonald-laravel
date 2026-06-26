@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pago</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
 
 <style>
 *{
@@ -15,29 +17,33 @@ body{
     min-height:100vh;
     background-image:
         linear-gradient(rgba(15,5,0,0.82), rgba(15,5,0,0.92)),
-        url('{{ asset('img/fondo2.png') }}');
+        url('{{ asset("img/fondo2.png") }}');
     background-size:cover;
     background-position:center;
     font-family:Arial, sans-serif;
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:30px;
+    padding:20px;
 }
 
+/* 📦 CONTENEDOR ELÁSTICO MULTIDISPOSITIVO */
 .pago-contenedor{
-    width:1150px;
-    height:720px;
+    width:100%;
+    max-width:1150px;
+    min-height:720px;
     background:rgba(15,5,0,0.92);
     border-radius:36px;
     overflow:hidden;
-    display:grid;
-    grid-template-columns:1fr 430px;
+    display:flex;
+    flex-wrap:wrap; /* Permite la reestructuración automática en tablets y celulares */
     box-shadow:0 40px 90px rgba(0,0,0,0.75);
     border:1px solid rgba(255,255,255,0.08);
 }
 
+/* COLUMNA IZQUIERDA: RESUMEN DEL PEDIDO */
 .resumen-pago{
+    flex:1 1 500px; /* Crece dinámicamente, base ideal de 500px */
     padding:42px;
     color:white;
     overflow:hidden;
@@ -53,7 +59,7 @@ body{
 }
 
 .resumen-pago h1{
-    font-size:40px;
+    font-size: clamp(28px, 4vw, 40px); /* Escalado fluido de tipografía */
     margin-bottom:28px;
 }
 
@@ -62,6 +68,7 @@ body{
     overflow-y:auto;
     overflow-x:hidden;
     padding-right:6px;
+    max-height: 380px; /* Previene la deformación si se compran muchos productos */
     display:flex;
     flex-direction:column;
     gap:14px;
@@ -83,6 +90,7 @@ body{
     align-items:center;
     gap:12px;
     flex:1;
+    min-width:0; /* Clave: permite que el contenedor respete los límites flexibles */
 }
 
 .img-carrito{
@@ -90,7 +98,7 @@ body{
     height:70px;
     object-fit:cover;
     border-radius:14px;
-    flex-shrink:0;
+    flex-shrink:0; /* Evita que la foto se aplaste */
 }
 
 .item-carrito span{
@@ -98,6 +106,9 @@ body{
     font-size:16px;
     font-weight:700;
     line-height:1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Agrega puntos suspensivos si el nombre es muy largo */
 }
 
 .item-carrito b{
@@ -132,6 +143,7 @@ body{
 
 .total b{
     color:#FFC300;
+    font-weight:900;
 }
 
 .btn-secundario{
@@ -145,23 +157,27 @@ body{
     font-size:16px;
     font-weight:700;
     cursor:pointer;
+    transition: background 0.2s;
 }
 
 .btn-secundario:hover{
     background:rgba(255,255,255,0.14);
 }
 
+/* COLUMNA DERECHA: MÉTODOS DE PAGO Y PASARELA */
 .metodos-pago{
+    flex:1 1 430px; /* Base ideal original de 430px */
     background:rgba(0,0,0,0.45);
     padding:42px 30px;
     color:white;
     display:flex;
     flex-direction:column;
     overflow:hidden;
+    border-left: 1px solid rgba(255,255,255,0.05);
 }
 
 .metodos-pago h2{
-    font-size:28px;
+    font-size: clamp(22px, 3vw, 28px);
     margin-bottom:28px;
 }
 
@@ -172,15 +188,16 @@ body{
 }
 
 .metodo{
-    padding:22px;
+    padding:22px 14px;
     border:none;
     border-radius:22px;
     background:rgba(255,255,255,0.08);
     color:white;
-    font-size:18px;
+    font-size:16px;
     font-weight:700;
     cursor:pointer;
     transition:0.2s;
+    text-align: center;
 }
 
 .metodo:hover,
@@ -225,7 +242,7 @@ body{
 }
 
 .btn-final{
-    margin-top:auto;
+    margin-top:40px; /* Asegura separación del formulario dinámico */
     width:100%;
     padding:18px;
     border:none;
@@ -244,22 +261,34 @@ body{
 
 a{
     text-decoration:none;
+    width: 100%;
 }
 
-@media(max-width:900px){
+/* 📱 REGLAS DE ACOMODO EXCLUSIVAS PARA MOVILES */
+@media(max-width:920px){
     body{
-        padding:0;
+        padding:12px;
     }
 
     .pago-contenedor{
-        width:100%;
-        height:100vh;
-        border-radius:0;
-        grid-template-columns:1fr;
+        border-radius:24px;
+        height: auto; /* Quitamos rigidez para prevenir desbordes */
+    }
+
+    .resumen-pago{
+        padding: 34px 24px;
+        flex: 1 1 100%;
     }
 
     .metodos-pago{
+        border-left:none;
         border-top:1px solid rgba(255,255,255,0.08);
+        padding: 34px 24px;
+        flex: 1 1 100%;
+    }
+    
+    .grid-pagos{
+        grid-template-columns: 1fr; /* Los botones se apilan verticalmente de forma óptima */
     }
 }
 </style>
